@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/skibish/go-docker-20190302/server"
+	"github.com/skibish/go-docker-20190302/pkg/server"
 )
 
 func main() {
