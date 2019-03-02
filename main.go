@@ -40,7 +40,7 @@ func main() {
 			log.Fatalf("failed to accept connection: %v\n", errAcc)
 		}
 
-		handleConnection(c)
+		go handleConnection(c)
 	}
 
 }
