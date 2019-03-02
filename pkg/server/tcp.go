@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"strings"
+
+	"github.com/skibish/go-docker-20190302/pkg/commands"
 )
 
 // TCPServer is a server for a chat communication
@@ -77,14 +79,14 @@ func (srv *TCPServer) commands(c net.Conn, raw string) {
 	cmd := split[0]
 
 	switch cmd {
-	case "NAME":
+	case commands.Name:
 		text := raw[len(cmd)+1 : len(raw)-1]
 		srv.allClients[c] = text
 		srv.messages <- fmt.Sprintf("[%s] CONNECTED\n", text)
-	case "MSG":
+	case commands.Message:
 		text := raw[len(cmd)+1 : len(raw)-1]
 		srv.messages <- fmt.Sprintf(">> [%s] %s\n", srv.allClients[c], text)
-	case "EXIT":
+	case commands.Exit:
 		srv.messages <- fmt.Sprintf("<< [%s] DISCONNECTED\n", srv.allClients[c])
 		srv.deadConnections <- c
 	}
