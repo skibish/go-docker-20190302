@@ -2,6 +2,26 @@
 
 > Daugavpils, 2019/03/02
 
+## How to run and build binaries
+
+```bash
+# Run using `go run`
+cd cmd/chatserver && go run main.go
+cd cmd/client && go run main.go
+
+# Build binaries
+cd cmd/chatserver && go build
+cd cmd/client && go build
+```
+
+
+## How to build and run Docker image
+
+```bash
+docker build -t chatserver .
+docker run --rm --publish 9999:9999 chatserver
+```
+
 ## Worth to watch
 
 - [**Go Proverbs** by Rob Pike](https://www.youtube.com/watch?v=PAAkCSZUG1c)

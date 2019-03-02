@@ -1,4 +1,4 @@
-FROM golang:1.11.5 as build
+FROM golang:1.12.0 as build
 
 WORKDIR /go/src/github.com/skibish/go-docker-20190302
 
