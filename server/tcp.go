@@ -2,15 +2,17 @@ package server
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"net"
+	"strings"
 )
 
 // TCPServer is a server for a chat communication
 type TCPServer struct {
 	port            string
 	l               net.Listener
-	allClients      map[net.Conn]bool
+	allClients      map[net.Conn]string
 	newConnections  chan net.Conn
 	deadConnections chan net.Conn
 	messages        chan string
@@ -20,7 +22,7 @@ type TCPServer struct {
 func NewTCPServer(port string) *TCPServer {
 	return &TCPServer{
 		port:            port,
-		allClients:      make(map[net.Conn]bool),
+		allClients:      make(map[net.Conn]string),
 		newConnections:  make(chan net.Conn),
 		deadConnections: make(chan net.Conn),
 		messages:        make(chan string),
@@ -48,7 +50,7 @@ func (srv *TCPServer) Close() error {
 func (srv *TCPServer) acceptConnections() {
 	for {
 		c, errAcc := srv.l.Accept()
-		srv.allClients[c] = true
+		srv.allClients[c] = ""
 		if errAcc != nil {
 			log.Fatalf("failed to accept connection: %v\n", errAcc)
 		}
@@ -66,7 +68,25 @@ func (srv *TCPServer) readMessages(c net.Conn) {
 			break
 		}
 
-		srv.messages <- s
+		srv.commands(c, s)
+	}
+}
+
+func (srv *TCPServer) commands(c net.Conn, raw string) {
+	split := strings.Split(raw, " ")
+	cmd := split[0]
+
+	switch cmd {
+	case "NAME":
+		text := raw[len(cmd)+1 : len(raw)-1]
+		srv.allClients[c] = text
+		srv.messages <- fmt.Sprintf("[%s] CONNECTED\n", text)
+	case "MSG":
+		text := raw[len(cmd)+1 : len(raw)-1]
+		srv.messages <- fmt.Sprintf(">> [%s] %s\n", srv.allClients[c], text)
+	case "EXIT":
+		srv.messages <- fmt.Sprintf("<< [%s] DISCONNECTED\n", srv.allClients[c])
+		srv.deadConnections <- c
 	}
 }
 
