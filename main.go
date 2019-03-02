@@ -14,6 +14,7 @@ func main() {
 	defer l.Close()
 
 	newConnections := make(chan net.Conn)
+	deadConnetions := make(chan net.Conn)
 	messages := make(chan string)
 
 	allClients := make(map[net.Conn]bool)
@@ -53,9 +54,14 @@ func main() {
 					_, errWrite := c.Write([]byte(m))
 					if errWrite != nil {
 						log.Printf("failed to write: %v\n", errWrite)
+						deadConnetions <- c
 					}
 				}(c, message)
 			}
+		case c := <-deadConnetions:
+			c.Close()
+			delete(allClients, c)
+			log.Printf("client disconnected")
 		}
 	}
 }
