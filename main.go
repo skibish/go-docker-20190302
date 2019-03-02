@@ -14,6 +14,10 @@ func main() {
 	defer l.Close()
 
 	newConnections := make(chan net.Conn)
+	messages := make(chan string)
+
+	allClients := make(map[net.Conn]bool)
+
 	go func() {
 		for {
 			c, errAcc := l.Accept()
@@ -29,6 +33,7 @@ func main() {
 		select {
 		case c := <-newConnections:
 			log.Println("new connection")
+			allClients[c] = true
 
 			go func(c net.Conn) {
 				r := bufio.NewReader(c)
@@ -39,12 +44,18 @@ func main() {
 						break
 					}
 
-					_, errWrite := c.Write([]byte(s))
+					messages <- s
+				}
+			}(c)
+		case message := <-messages:
+			for c := range allClients {
+				go func(c net.Conn, m string) {
+					_, errWrite := c.Write([]byte(m))
 					if errWrite != nil {
 						log.Printf("failed to write: %v\n", errWrite)
 					}
-				}
-			}(c)
+				}(c, message)
+			}
 		}
 	}
 }
