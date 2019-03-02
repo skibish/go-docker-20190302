@@ -2,30 +2,9 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 )
-
-func handleConnection(c net.Conn) {
-	log.Println("New connection!")
-
-	for {
-		s, err := bufio.NewReader(c).ReadString('\n')
-		if err != nil {
-			log.Printf("failed to read string: %v\n", err)
-			return
-		}
-
-		out := fmt.Sprintf("Hello, %s", s)
-
-		_, errWrite := c.Write([]byte(out))
-		if errWrite != nil {
-			log.Printf("failed to write: %v\n", errWrite)
-		}
-
-	}
-}
 
 func main() {
 	l, err := net.Listen("tcp", ":9999")
@@ -34,13 +13,38 @@ func main() {
 	}
 	defer l.Close()
 
-	for {
-		c, errAcc := l.Accept()
-		if errAcc != nil {
-			log.Fatalf("failed to accept connection: %v\n", errAcc)
+	newConnections := make(chan net.Conn)
+	go func() {
+		for {
+			c, errAcc := l.Accept()
+			if errAcc != nil {
+				log.Fatalf("failed to accept connection: %v\n", errAcc)
+			}
+
+			newConnections <- c
 		}
+	}()
 
-		go handleConnection(c)
+	for {
+		select {
+		case c := <-newConnections:
+			log.Println("new connection")
+
+			go func(c net.Conn) {
+				r := bufio.NewReader(c)
+				for {
+					s, err := r.ReadString('\n')
+					if err != nil {
+						log.Printf("failed to read: %v\n", err)
+						break
+					}
+
+					_, errWrite := c.Write([]byte(s))
+					if errWrite != nil {
+						log.Printf("failed to write: %v\n", errWrite)
+					}
+				}
+			}(c)
+		}
 	}
-
 }
