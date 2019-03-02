@@ -1,30 +1,46 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
-	"net/http"
-	"strings"
+	"net"
 )
 
-var atHome bool // false
-var num int     // 0
-var str string  // ""
+func handleConnection(c net.Conn) {
+	log.Println("New connection!")
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path[1:], "/")
+	for {
+		s, err := bufio.NewReader(c).ReadString('\n')
+		if err != nil {
+			log.Printf("failed to read string: %v\n", err)
+			return
+		}
 
-	text := parts[1]
-	if text == "" {
-		w.WriteHeader(404)
-		fmt.Fprint(w, "Failed")
-		return
+		out := fmt.Sprintf("Hello, %s", s)
+
+		_, errWrite := c.Write([]byte(out))
+		if errWrite != nil {
+			log.Printf("failed to write: %v\n", errWrite)
+		}
+
 	}
-
-	fmt.Fprintf(w, "Hello, %s", text)
 }
 
 func main() {
-	http.HandleFunc("/hello/", handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	l, err := net.Listen("tcp", ":9999")
+	if err != nil {
+		log.Fatalf("failed to start tcp: %v\n", err)
+	}
+	defer l.Close()
+
+	for {
+		c, errAcc := l.Accept()
+		if errAcc != nil {
+			log.Fatalf("failed to accept connection: %v\n", errAcc)
+		}
+
+		handleConnection(c)
+	}
+
 }
